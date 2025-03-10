@@ -106,8 +106,8 @@
 
     #Compile and load DLL        
             
-      compile("cpp/soap_tw_DSM.cpp")
-      dyn.load(dynlib("cpp/soap_tw_DSM"))
+      compile("src/soap_tw_DSM.cpp")
+      dyn.load(dynlib("src/soap_tw_DSM"))
             
     #Construct objective functions with derivatives based on compiled C++
     #template       
@@ -207,7 +207,7 @@
       R1 = sum(M$report()$devresid^2 )
               
     #Unload DLL for candidate DSM     
-      dyn.unload(dynlib("cpp/soap_tw_DSM"))
+      dyn.unload(dynlib("src/soap_tw_DSM"))
 
     #Steps for computing PDE for the candidate model: 
     # 1. Fit null model; 
@@ -219,8 +219,8 @@
 
         #Compile .cpp for null model then load DLL 
           
-          compile("cpp/null_tw_DSM.cpp")
-          dyn.load(dynlib("cpp/null_tw_DSM"))
+          compile("src/null_tw_DSM.cpp")
+          dyn.load(dynlib("src/null_tw_DSM"))
 
         #Specify data and parameters
     
@@ -258,7 +258,7 @@
           summary(b)
           pde
           
-      dyn.unload(dynlib("cpp/null_tw_DSM"))
+      dyn.unload(dynlib("src/null_tw_DSM"))
 
     #Now derive DSM predictions for the portion of the study area that was
     #surveyed in 2017
@@ -293,7 +293,7 @@
           
           par
                 
-        dyn.load(dynlib("cpp/soap_tw_DSM"))
+        dyn.load(dynlib("src/soap_tw_DSM"))
                 
         M22.in17 <- MakeADFun(data=data_tmb22.in17, parameters=par, 
                               random=c("beta"), DLL="soap_tw_DSM")
