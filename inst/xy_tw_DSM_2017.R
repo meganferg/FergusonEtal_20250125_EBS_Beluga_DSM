@@ -1,4 +1,4 @@
-#Script xy_tw_DSM_2017.R...Megan C. Ferguson...27 January 2025
+#Script xy_tw_DSM_2017.R...Megan C. Ferguson...10 March 2025
 
   #Notes
   #
@@ -11,13 +11,13 @@
   #     c. log link
   # 
   # 2. Required input files:
-  #    a. Data/FergusonEtal_20250125_EBS_Beluga_DSM_data.Rdata
-  #    b. R/mcf_mod_eval_plots.R
-  #    c. cpp/x_y_tw_DSM.cpp
-  #    d. cpp/null_tw_DSM.cpp
+  #    a. data/FergusonEtal_20250125_EBS_Beluga_DSM_data.Rdata
+  #    b. inst/mcf_mod_eval_plots.R
+  #    c. src/x_y_tw_DSM.cpp
+  #    d. src/null_tw_DSM.cpp
   #
   # 3. This script requires the R package TMB. For information on 
-  #    installing TMB, see https://github.com/kaskr/adcomp/wiki/Download
+  #    installing TMB, see https://github.com/kaskinst/adcomp/wiki/Download
   #
   # 4. Figures are output to a folder called "Figures" in the working directory.
   #
@@ -42,11 +42,8 @@
       
     #Input necessary objects
     
-      load("Data/FergusonEtal_20250125_EBS_Beluga_DSM_data.Rdata")
-      source("R/mcf_mod_eval_plots.R")
-      #CK
-        summary(predgrid.strat)
-        summary(gam.dat17)
+      load("data/FergusonEtal_20250125_EBS_Beluga_DSM_data.Rdata")
+      source("inst/mcf_mod_eval_plots.R")
 
     #Create mgcv model
       
@@ -61,7 +58,7 @@
     #which saves plots to the location specified by the fnam argument to 
     #mod.eval.plots; and 2) DHARMa plots
             
-      Fnam <- "Figures/xy_tw_DSM_2017"
+      Fnam <- "figures/xy_tw_DSM_2017"
             
       mod.eval.plots(m=b, mod.typ="tw", tw.p=NA, fnam=Fnam)
             
@@ -137,8 +134,8 @@
 
     #Compile and load DLL        
             
-      compile("cpp/x_y_tw_DSM.cpp")
-      dyn.load(dynlib("cpp/x_y_tw_DSM"))
+      compile("src/x_y_tw_DSM.cpp")
+      dyn.load(dynlib("src/x_y_tw_DSM"))
             
     #Construct objective functions with derivatives based on compiled C++
     #template       
@@ -158,10 +155,6 @@
     #Use epsilon detransformation bias correction algorithm
             
       rep <- sdreport( M, par.fixed=opt.bc$par, bias.correct=TRUE)
-      #CK
-        M$report()
-        rep
-        summary(rep, "report")
 
     #Compare cell-wise predictions (plug-in estimator) from mgcv and TMB. 
 
@@ -178,12 +171,6 @@
       #(plug-in estimate)  
                 
         pred_mgcv <- predgrid.strat$a.p*exp(Lp%*%coef(b)) #log link, with offset
-        #CK
-          summary(pred_tmb) #Predicted plug-in Nhat per cell from TMB
-          summary(pred_mgcv) #Predicted plug-in Nhat per cell from mgcv
-              
-          sum(pred_tmb)  #Predicted plug-in Nhat in study area from TMB
-          sum(pred_mgcv) #Predicted plug-in Nhat in study area from mgcv
 
     #Evaluate TMB model fit           
               
@@ -251,7 +238,7 @@
       R1 = sum(M$report()$devresid^2 )
               
     #Unload DLL for candidate DSM     
-      dyn.unload(dynlib("cpp/x_y_tw_DSM"))
+      dyn.unload(dynlib("src/x_y_tw_DSM"))
 
     #Steps for computing PDE for the candidate model: 
     # 1. Fit null model; 
@@ -263,8 +250,8 @@
 
         #Compile .cpp for null model then load DLL 
           
-          compile("cpp/null_tw_DSM.cpp")
-          dyn.load(dynlib("cpp/null_tw_DSM"))
+          compile("src/null_tw_DSM.cpp")
+          dyn.load(dynlib("src/null_tw_DSM"))
 
         #Specify data and parameters
     
@@ -281,10 +268,7 @@
           null.M <- MakeADFun(data=null.data_tmb, 
                          parameters=null.par, 
                          DLL="null_tw_DSM")
-              #CK
-                null.M$report()
-                sum(null.M$report()$devresid^2 )
-  
+
       #Optimize null model
       
         Lower <- -50  #trying to prevent -Inf,Inf bounds resulting in nlminb failure (NaN gradient)
@@ -294,18 +278,13 @@
                                iter.max=1000))
       #2. Compute null deviance
         sum.null.dev.sq <- sum(null.M$report()$devresid^2 )
-        #CK
-          sum.null.dev.sq
-          
+
       #3. Recall that the sum of residual squared deviances from candidate model
       #was computed above
         R1 
 
       #4. Use sum.null.dev.sq and R1 to compute PDE.
         pde <- 1 - R1/sum.null.dev.sq
-        #Compare to mgcv's model
-          summary(b)
-          pde
 
 
               
