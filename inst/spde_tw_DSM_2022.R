@@ -1,4 +1,4 @@
-#Script spde_tw_DSM_2022.R...Megan C. Ferguson...4 February 2025
+#Script spde_tw_DSM_2022.R...Megan C. Ferguson...10 March 2025
 
   #Notes
   #
@@ -22,14 +22,14 @@
   #    https://doi.org/10.1007/s13253-019-00377-z
   #
   # 3. Required input files:
-  #    a. Data/FergusonEtal_20250125_EBS_Beluga_DSM_data.Rdata
-  #    b. R/mcf_mod_eval_plots.R
-  #    c. R/mgcv_spde_smooth_mcf.R
-  #    d. cpp/spde_tw_DSM.cpp
-  #    e. cpp/null_tw_DSM.cpp
+  #    a. data/FergusonEtal_20250125_EBS_Beluga_DSM_data.Rdata
+  #    b. inst/mcf_mod_eval_plots.R
+  #    c. inst/mgcv_spde_smooth_mcf.R
+  #    d. src/spde_tw_DSM.cpp
+  #    e. src/null_tw_DSM.cpp
   #
   # 4. This script requires the R package TMB. For information on 
-  #    installing TMB, see https://github.com/kaskr/adcomp/wiki/Download
+  #    installing TMB, see https://github.com/kaskinst/adcomp/wiki/Download
   #
   # 5. Figures are output to a folder called "Figures" in the working directory.
   #
@@ -46,15 +46,12 @@
     library(fields)
 
     #Designate path and basic filename for outputting figures
-      Fnam <- "Figures/spde_tw_DSM_2022"
+      Fnam <- "figures/spde_tw_DSM_2022"
     
     #Input necessary objects
     
-      load("Data/FergusonEtal_20250125_EBS_Beluga_DSM_data.Rdata")
-      #CK
-        summary(gam.dat22)
-        summary(predgrid)
-        
+      load("data/FergusonEtal_20250125_EBS_Beluga_DSM_data.Rdata")
+
       #Convert units for x and y in gam.dat22 and predgrid from m to km. 
       #The distances and areas in gam.dat22 and predgrid are already in km.
         
@@ -69,12 +66,9 @@
         
         predgrid$y.m <- predgrid$y
         predgrid$y <- predgrid$y.m/1000
-        #CK
-          summary(gam.dat22)
-          summary(predgrid)
-          
-      source("R/mcf_mod_eval_plots.R")
-      source("R/mgcv_spde_smooth_mcf.R")
+
+      source("inst/mcf_mod_eval_plots.R")
+      source("inst/mgcv_spde_smooth_mcf.R")
 
     #Define mesh and components representing the  precision matrix
 
@@ -106,10 +100,7 @@
             max.edge=c(1,2)*max.edg5,
             cutoff = max.edg5/5
           )
-          #CK
-            summary(mesh5)
-            plot(mesh5)
-        
+
     #Continue with spde model specification      
 
       A = inla.spde.make.A(mesh5,loc) #spatial interpolation mtx for observations
@@ -122,27 +113,16 @@
         
       pred_loc <- cbind(predgrid$x, predgrid$y)  
       A_pred <- inla.spde.make.A(mesh5, pred_loc) #spatial interpolation mtx for predictions  
-      #CK
-        dim(A)
-        dim(A_pred)
-      
+
     #Define the design matrix for the fixed effects
           
       X <- model.matrix( ~ 1,
                          data = gam.dat22) #No covariates
-      #CK
-        summary(X)
-        dim(X)
-        nrow(gam.dat22) #same as nrow(X)
-        
+
     #Define the design matrix for prediction
           
       X_pred <- model.matrix( ~ 1,
                          data = predgrid) #No covariates
-      #CK
-        summary(X_pred)
-        dim(X_pred)
-        nrow(predgrid) #same as nrow(X)
 
     #Define the data and parameters given to TMB
 
@@ -166,8 +146,8 @@
               
     #Compile and load c++ code
       
-      compile("cpp/spde_tw_DSM.cpp")
-      dyn.load(dynlib("cpp/spde_tw_DSM"))
+      compile("src/spde_tw_DSM.cpp")
+      dyn.load(dynlib("src/spde_tw_DSM"))
             
     #Build the model
       
@@ -183,10 +163,6 @@
     #Use epsilon detransformation bias correction algorithm. 
             
       rep <- sdreport( M, par.fixed=opt.bc$par, bias.correct=TRUE)
-      #CK
-        M$report()
-        rep
-        summary(rep, "report")
 
     #Make cellwise predictions from SPDE model
               
@@ -220,17 +196,7 @@
       mu.pred <- X.beta + delta.pred
 
       Nhat.pred.i <- predgrid$off.set*exp(mu.pred)
-      #CK
-        length(fieldIndex) #308
-        
-        log_tau_Idx
-        tau.est
-        
-        beta.est
-        
-        Nhat.pred.est
-        sum(Nhat.pred.i) #Note that Nhat.pred.i are not bias corrected!!!
-        
+
     #Evaluate TMB model fit using DHARMa          
           
       #Extract estimates of phi and power for Tweedie 
@@ -292,9 +258,6 @@
                      control = gam.control(scalePenalty = FALSE),
                      family=tw(link="log"), 
                      method = "REML")
-            #CK
-              summary(M.gam)
-              length(M.gam$coefficients)
 
         ## get hyperparameter estimates
           tau.gam <- M.gam$sp[1]
@@ -367,7 +330,7 @@
       R1 = sum(M$report()$devresid^2 )
 
     #Unload DLL for candidate DSM     
-      dyn.unload(dynlib("cpp/spde_tw_DSM"))
+      dyn.unload(dynlib("src/spde_tw_DSM"))
 
     #Steps for computing PDE for the candidate model: 
     # 1. Fit null model; 
@@ -379,8 +342,8 @@
 
         #Compile .cpp for null model then load DLL 
           
-          compile("cpp/null_tw_DSM.cpp")
-          dyn.load(dynlib("cpp/null_tw_DSM"))
+          compile("src/null_tw_DSM.cpp")
+          dyn.load(dynlib("src/null_tw_DSM"))
 
         #Specify data and parameters
     
@@ -397,10 +360,7 @@
           null.M <- MakeADFun(data=null.data_tmb, 
                          parameters=null.par, 
                          DLL="null_tw_DSM")
-              #CK
-                null.M$report()
-                sum(null.M$report()$devresid^2 )
-  
+
       #Optimize null model
       
         Lower <- -50  #trying to prevent -Inf,Inf bounds resulting in nlminb failure (NaN gradient)
@@ -410,20 +370,15 @@
                                iter.max=1000))
       #2. Compute null deviance
         sum.null.dev.sq <- sum(null.M$report()$devresid^2 )
-        #CK
-          sum.null.dev.sq
-          
+
       #3. Recall that the sum of residual squared deviances from candidate model
       #was computed above
         R1 
 
       #4. Use sum.null.dev.sq and R1 to compute PDE.
         pde <- 1 - R1/sum.null.dev.sq
-        #Compare to mgcv's model
-          summary(M.gam)
-          pde
 
-        dyn.unload(dynlib("cpp/null_tw_DSM"))
+        dyn.unload(dynlib("src/null_tw_DSM"))
 
     #Now derive DSM predictions for the portion of the study area that was
     #surveyed in 2017
@@ -437,19 +392,12 @@
           
         pred_loc <- cbind(predgrid22.in17$x, predgrid22.in17$y)  
         A_pred <- inla.spde.make.A(mesh5, pred_loc) #spatial interpolation mtx for predictions  
-        #CK
-          dim(A)
-          dim(A_pred)
-          
+
       #Define the design matrix for prediction
             
         X_pred <- model.matrix( ~ 1,
                            data = predgrid22.in17) #No covariates
-        #CK
-          summary(X_pred)
-          dim(X_pred)
-          nrow(predgrid22.in17) #same as nrow(X_pred)
-                
+
       #Define the data and parameters given to TMB
   
         data_tmb = list(y = gam.dat22$seg.ind, #Response
@@ -472,7 +420,7 @@
         
       #Load compiled c++ code
   
-        dyn.load(dynlib("cpp/spde_tw_DSM"))
+        dyn.load(dynlib("src/spde_tw_DSM"))
               
       #Estimate the model and extract results
         
@@ -485,12 +433,7 @@
           
         #Apply epsilon detransformation bias correction factor  
           rep <- sdreport( M22.in17, par.fixed=opt.bc$par, bias.correct=TRUE)
-          #CK
-            M22.in17$report() #DLL must be linked for this command to work 
-                    
-            rep.mtx <- summary(rep, "report")
-            rep.mtx   
-              
+
                   
                 
                     
