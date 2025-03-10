@@ -1,4 +1,4 @@
-#Script soap_tw_DSM_2022.R...Megan C. Ferguson...28 January 2025
+#Script soap_tw_DSM_2022.R...Megan C. Ferguson...10 March 2025
 
   #Notes
   #
@@ -10,15 +10,15 @@
   #     c. log link
   # 
   # 2. Required input files:
-  #    a. Data/FergusonEtal_20250125_EBS_Beluga_DSM_data.Rdata
-  #    b. R/mcf_mod_eval_plots.R
-  #    c. cpp/soap_tw_DSM.cpp
-  #    d. cpp/null_tw_DSM.cpp
+  #    a. data/FergusonEtal_20250125_EBS_Beluga_DSM_data.Rdata
+  #    b. inst/mcf_mod_eval_plots.R
+  #    c. src/soap_tw_DSM.cpp
+  #    d. src/null_tw_DSM.cpp
   #
   # 3. This script requires the R package TMB. For information on 
   #    installing TMB, see https://github.com/kaskr/adcomp/wiki/Download
   #
-  # 4. Figures are output to a folder called "Figures" in the working directory.
+  # 4. Figures are output to a folder called "figures" in the working directory.
   #
   # 5. This script is a clean version of MCF's NSDL22dsm_tmb_tw_soap_xy_w_spde_knots_noscmn.R.
 
@@ -41,14 +41,8 @@
       
     #Input necessary objects
     
-      load("Data/FergusonEtal_20250125_EBS_Beluga_DSM_data.Rdata")
-      source("R/mcf_mod_eval_plots.R")
-      #CK
-        summary(predgrid)
-        summary(gam.dat22)
-        summary(vert22.in.bnd.df)
-        summary(noscmn.buff.bnd.list.m)
-        summary(sf22.in17)
+      load("data/FergusonEtal_20250125_EBS_Beluga_DSM_data.Rdata")
+      source("inst/mcf_mod_eval_plots.R")
 
     #Create mgcv model
       
@@ -65,7 +59,7 @@
     #which saves plots to the location specified by the fnam argument to 
     #mod.eval.plots; and 2) DHARMa plots
             
-      Fnam <- "Figures/soap_tw_DSM_2022"
+      Fnam <- "figures/soap_tw_DSM_2022"
             
       mod.eval.plots(m=b, mod.typ="tw", tw.p=NA, fnam=Fnam)
             
@@ -109,10 +103,7 @@
 
         n.RE <- length(par$beta) #Number of random effects in model
         n.RE
-        #CK
-          dim(data_tmb$X) #should be 308
-          length(par$beta) #should be 308
-           
+
     #Compile and load DLL        
             
       compile("cpp/soap_tw_DSM.cpp")
@@ -133,12 +124,6 @@
     #Use epsilon detransformation bias correction algorithm
             
       rep <- sdreport( M, par.fixed=opt.bc$par, bias.correct=TRUE)
-      #CK
-        M$report()
-        rep
-        summary(rep, "report")
-        rep.mtx <- summary(rep, "report")
-        rep.mtx
 
     #Compare cell-wise predictions (plug-in estimator) from mgcv and TMB. 
 
@@ -155,12 +140,6 @@
       #(plug-in estimate)  
                 
         pred_mgcv <- predgrid$a.p*exp(Lp%*%coef(b)) #log link, with offset
-        #CK
-          summary(pred_tmb) #Predicted plug-in Nhat per cell from TMB
-          summary(pred_mgcv) #Predicted plug-in Nhat per cell from mgcv
-              
-          sum(pred_tmb)  #Predicted plug-in Nhat in study area from TMB
-          sum(pred_mgcv) #Predicted plug-in Nhat in study area from mgcv
 
     #Evaluate TMB model fit           
               
@@ -258,10 +237,7 @@
           null.M <- MakeADFun(data=null.data_tmb, 
                          parameters=null.par, 
                          DLL="null_tw_DSM")
-              #CK
-                null.M$report()
-                sum(null.M$report()$devresid^2 )
-  
+
       #Optimize null model
       
         Lower <- -50  #trying to prevent -Inf,Inf bounds resulting in nlminb failure (NaN gradient)
@@ -271,9 +247,7 @@
                                iter.max=1000))
       #2. Compute null deviance
         sum.null.dev.sq <- sum(null.M$report()$devresid^2 )
-        #CK
-          sum.null.dev.sq
-          
+
       #3. Recall that the sum of residual squared deviances from candidate model
       #was computed above
         R1 
@@ -331,16 +305,7 @@
                                  gradient=M22.in17$gr, lower=Lower, upper=Upper, 
                                  control=list(trace=1, eval.max=1000, iter.max=1000))
         rep22.in17 <- sdreport( M22.in17, par.fixed=opt.bc22.in17$par, bias.correct=TRUE)
-        #CK
-          M22.in17$report()
-          rep22.in17
-          summary(rep22.in17, "report")
-          rep.mtx22.in17 <- summary(rep22.in17, "report")
-          rep.mtx22.in17
-          
-          #Compare to full 2022 study area
-          rep.mtx
-          
+
               
               
                   
