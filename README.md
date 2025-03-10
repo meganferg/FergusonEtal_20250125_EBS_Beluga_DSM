@@ -3,8 +3,11 @@ Data and code for estimating the abundance of Eastern Bering Sea (EBS) belugas u
 
 ---
 title: "Spatially Explicit Models of Eastern Bering Sea Beluga Density & Abundance"
+
 author: "M.C. Ferguson, P.B. Conn, and J.T. Thorson"
+
 date: "`r Sys.Date()`"
+
 output: html_document
 ---
 
