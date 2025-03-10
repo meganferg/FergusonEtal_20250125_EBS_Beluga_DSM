@@ -1,4 +1,4 @@
-#Script spde_bnd_tw_DSM_2022.R...Megan C. Ferguson...2 February 2025
+#Script spde_bnd_tw_DSM_2022.R...Megan C. Ferguson...10 March 2025
 
   #1. This script creates a DSM using the spde framework. The DSM is a purely 
   #   spatial model. The number of belugas sighted on a segment with midpoint 
@@ -16,15 +16,15 @@
   #   https://github.com/skaug/tmb-case-studies/tree/master/spdeBarrier 
   #
   # 3. Required input files:
-  #    a. Data/FergusonEtal_20250125_EBS_Beluga_DSM_data.Rdata
-  #    b. cpp/spde_bnd_tw_DSM.cpp
-  #    c. cpp/null_tw_DSM.cpp
-  #    d. cpp/barrierTMB.hpp
+  #    a. data/FergusonEtal_20250125_EBS_Beluga_DSM_data.Rdata
+  #    b. src/spde_bnd_tw_DSM.cpp
+  #    c. src/null_tw_DSM.cpp
+  #    d. src/barrierTMB.hpp
   #
   # 4. This script requires the R package TMB. For information on 
   #    installing TMB, see https://github.com/kaskr/adcomp/wiki/Download
   #
-  # 5. Figures are output to a folder called "Figures" in the working directory.
+  # 5. Figures are output to a folder called "figures" in the working directory.
   #
   # 6. This script is based on MCF's NSDL22dsm_tmb_spde_tw_bnd_noscmn.R.
 
@@ -40,7 +40,7 @@
     library(sp)
     
     #Designate path and basic filename for outputting figures
-      Fnam <- "Figures/spde_bnd_tw_DSM_2022"
+      Fnam <- "figures/spde_bnd_tw_DSM_2022"
 
     #Define projection
       nsdl.proj.km <- CRS('+proj=eqdc +lat_1=62.5d
@@ -54,11 +54,8 @@
       
           
     #Input necessary objects
-      load("Data/FergusonEtal_20250125_EBS_Beluga_DSM_data.Rdata")
-      #CK
-        summary(gam.dat22)
-        summary(predgrid)
-        
+      load("data/FergusonEtal_20250125_EBS_Beluga_DSM_data.Rdata")
+
       #Convert units for x and y in gam.dat22 and predgrid from m to km. 
       #The distances and areas in gam.dat22 and predgrid are already in km.
         
@@ -76,10 +73,7 @@
         
         predgrid.sf <- st_as_sf(predgrid, coords=c("x","y"))
         st_crs(predgrid.sf) <- nsdl.proj.km
-        #CK
-          summary(gam.dat22)
-          summary(predgrid)
-      
+
     #Spatial interpolation matrix      
       
       loc <- cbind(gam.dat22$x, gam.dat22$y)
@@ -99,16 +93,6 @@
       bnd22.noscmn.km.SP <- spTransform(bnd22.noscmn.SP, nsdl.proj.km)
       normal = unlist(over(bnd22.noscmn.km.SP, posTri, returnList=T)) #triangles located in WATER in study area
       barrier.triangles = setdiff(1:tl, normal) #triangles located either on land or not in study area
-      #CK
-        summary(barrier.triangles) #Indices of triangles with centers located on the barrier
-        
-        length(barrier.triangles) #Number of triangles with centers located on the barrier: 298
-        tl #total number of triangles: 596
-        
-          plot(bnd.mesh) 
-          plot(posTri, col="purple", add=TRUE, pch=16, cex=0.5)
-          plot(posTri[barrier.triangles], col="cyan", add=TRUE, pch=16, cex=0.5)
-          dev.off()
 
     #Construct spde object and structure needed in the spde-procedure
     #  inla.barrier.fem() is an internal method producing the Finite Element matrices  
@@ -122,26 +106,16 @@
         
       pred_loc <- cbind(predgrid$x, predgrid$y)  
       A_pred <- inla.spde.make.A(bnd.mesh, pred_loc) #spatial interpolation mtx for predictions  
-      #CK
-        dim(A) #317 x 316
-        dim(A_pred) #550 x 316
 
     #Define the design matrix for the fixed effects
           
       X <- model.matrix( ~ 1,
                          data = gam.dat22) #No covariates
-      #CK
-        summary(X)
-        dim(X) #317 x 1
-        
+
     #Define the design matrix for prediction
           
       X_pred <- model.matrix( ~ 1,
                          data = predgrid) #No covariates
-      #CK
-        summary(X_pred)
-        dim(X_pred) #550 x 1
-        nrow(predgrid) #same as nrow(X_pred)
 
     #Define the data and parameters given to TMB
 
@@ -168,13 +142,11 @@
                 )
       
       n.RE <- length(par$x)
-      #CK
-        n.RE #number of REs = 316
 
     #Compile and load c++ code
 
-      compile("cpp/spde_bnd_tw_DSM.cpp")
-      dyn.load(dynlib("cpp/spde_bnd_tw_DSM"))
+      compile("src/spde_bnd_tw_DSM.cpp")
+      dyn.load(dynlib("src/spde_bnd_tw_DSM"))
             
     #Build the model 
       
@@ -189,11 +161,7 @@
     #Use epsilon detransformation bias correction algorithm. 
   
       rep <- sdreport( M, par.fixed=opt.bc$par, bias.correct=TRUE)
-      #CK
-        M$report() #DLL must be linked for this command to work 
-        rep.mtx <- summary(rep, "report")
-        rep.mtx   
-            
+
     #Make cellwise predictions from SPDE model
         
       fieldIndex <- which(row.names(summary(rep))=="x")
@@ -222,17 +190,7 @@
       mu.pred <- X.beta + delta.pred
 
       Nhat.pred.i <- predgrid$off.set*exp(mu.pred)
-      #CK
-        length(fieldIndex)
-        
-        log_tau_Idx
-        tau.est
-        
-        beta.est
-        
-        Nhat.pred.est
-        sum(Nhat.pred.i) #Note that Nhat.pred.i are not bias corrected!!!
-        
+
     #Evaluate TMB model fit using DHARMa          
           
       #Extract estimates of phi and power for Tweedie 
@@ -288,7 +246,7 @@
       R1 = sum(M$report()$devresid^2 )
 
     #Unload DLL for candidate DSM     
-      dyn.unload(dynlib("cpp/spde_bnd_tw_DSM"))
+      dyn.unload(dynlib("src/spde_bnd_tw_DSM"))
 
     #Steps for computing PDE for the candidate model: 
     # 1. Fit null model; 
@@ -300,8 +258,8 @@
 
         #Compile .cpp for null model then load DLL 
           
-          compile("cpp/null_tw_DSM.cpp")
-          dyn.load(dynlib("cpp/null_tw_DSM"))
+          compile("src/null_tw_DSM.cpp")
+          dyn.load(dynlib("src/null_tw_DSM"))
 
         #Specify data and parameters
     
@@ -318,10 +276,7 @@
           null.M <- MakeADFun(data=null.data_tmb, 
                          parameters=null.par, 
                          DLL="null_tw_DSM")
-              #CK
-                null.M$report()
-                sum(null.M$report()$devresid^2 )
-  
+
       #Optimize null model
       
         Lower <- -50  #trying to prevent -Inf,Inf bounds resulting in nlminb failure (NaN gradient)
@@ -331,18 +286,15 @@
                                iter.max=1000))
       #2. Compute null deviance
         sum.null.dev.sq <- sum(null.M$report()$devresid^2 )
-        #CK
-          sum.null.dev.sq
-          
+
       #3. Recall that the sum of residual squared deviances from candidate model
       #was computed above
         R1 
 
       #4. Use sum.null.dev.sq and R1 to compute PDE.
         pde <- 1 - R1/sum.null.dev.sq
-        pde
 
-        dyn.unload(dynlib("cpp/null_tw_DSM"))
+        dyn.unload(dynlib("src/null_tw_DSM"))
 
     #Now derive DSM predictions for the portion of the study area that was
     #surveyed in 2017
@@ -356,19 +308,12 @@
           
         pred_loc <- cbind(predgrid22.in17$x, predgrid22.in17$y)  
         A_pred <- inla.spde.make.A(bnd.mesh, pred_loc) #spatial interpolation mtx for predictions  
-        #CK
-          dim(A)
-          dim(A_pred)
-          
+
       #Define the design matrix for prediction
             
         X_pred <- model.matrix( ~ 1,
                            data = predgrid22.in17) #No covariates
-        #CK
-          summary(X_pred)
-          dim(X_pred)
-          nrow(predgrid22.in17) #same as nrow(X_pred)
-                
+
       #Define the data and parameters given to TMB
   
         data = list(y = gam.dat22$seg.ind, #Response
@@ -395,7 +340,7 @@
         
       #Load compiled c++ code
   
-        dyn.load(dynlib("cpp/spde_bnd_tw_DSM"))
+        dyn.load(dynlib("src/spde_bnd_tw_DSM"))
               
       #Estimate the model and extract results
         
@@ -408,13 +353,7 @@
           
         #Apply epsilon detransformation bias correction factor  
           rep <- sdreport( M22.in17, par.fixed=opt.bc$par, bias.correct=TRUE)
-          #CK
-            M22.in17$report() #DLL must be linked for this command to work 
-                    
-            rep.mtx <- summary(rep, "report")
-            rep.mtx   
-              
-                  
+
                 
                     
                     
