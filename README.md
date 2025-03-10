@@ -1,16 +1,3 @@
-# FergusonEtal_20250125_EBS_Beluga_DSM
-Data and code for estimating the abundance of Eastern Bering Sea (EBS) belugas using spatially explicit estimators, conventional design-based estimators, and ensemble modeling.
-
----
-title: "Spatially Explicit Models of Eastern Bering Sea Beluga Density & Abundance"
-
-author: "M.C. Ferguson, P.B. Conn, and J.T. Thorson"
-
-date: "`r Sys.Date()`"
-
-output: html_document
----
-
 Welcome to a GitHub repository housing data and code for estimating the abundance of Eastern Bering Sea (EBS) belugas using spatially explicit estimators, conventional design-based estimators, and ensemble modeling.
 
 This repository is associated with the paper
